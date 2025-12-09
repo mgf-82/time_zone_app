@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Australian Time Zone Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #eef2fb;
+            --bg-accent: #e3e9f8;
+            --surface: rgba(255, 255, 255, 0.9);
+            --shadow: 0 10px 30px rgba(27, 52, 105, 0.12);
+            --primary: #3451f1;
+            --accent: #8b5cf6;
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --divider: rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at 20% 20%, #f7f9ff 0%, #eef2fb 40%, #e3e9f8 100%);
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text-main);
+            padding: 32px;
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .title-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        h1 {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 700;
+            font-size: 1.9rem;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            letter-spacing: 0.01em;
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+
+        button {
+            border: none;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #3b82f6, #3451f1);
+            color: white;
+            box-shadow: 0 8px 16px rgba(52, 81, 241, 0.24);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            box-shadow: 0 8px 16px rgba(109, 40, 217, 0.24);
+        }
+
+        button:hover { transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        .clock-layout {
+            background: linear-gradient(180deg, var(--surface), rgba(255, 255, 255, 0.85));
+            border-radius: 18px;
+            padding: 22px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(52, 81, 241, 0.08);
+        }
+
+        .clock-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .clock-card {
+            position: relative;
+            background: radial-gradient(circle at 30% 20%, rgba(52,81,241,0.08), transparent 45%), var(--surface);
+            padding: 22px 20px 18px;
+            border-radius: 16px;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+            text-align: center;
+            min-width: 240px;
+            border: 1px solid rgba(15, 23, 42, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            cursor: grab;
+            isolation: isolate;
+            animation: cardIn 0.45s ease both;
+        }
+
+        .clock-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 30px rgba(15, 23, 42, 0.15);
+        }
+
+        .clock-card:active { cursor: grabbing; }
+
+        .clock-card.dragging {
+            opacity: 0.9;
+            transform: scale(1.02);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
+        }
+
+        .drop-target {
+            outline: 2px dashed rgba(52, 81, 241, 0.5);
+            outline-offset: -10px;
+        }
+
+        .adelaide { border-top: 6px solid #ff7043; }
+        .canberra { border-top: 6px solid #3451f1; }
+        .brisbane { border-top: 6px solid #22c55e; }
+
+        .city-name {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .drag-handle {
+            font-size: 1rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+            user-select: none;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--divider);
+            margin: 12px 0 10px;
+        }
+
+        .time-display {
+            font-family: 'Space Grotesk', 'Manrope', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            letter-spacing: 0.03em;
+        }
+
+        .date-display {
+            font-size: 1rem;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+
+        .timezone-code {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(52, 81, 241, 0.08);
+            color: #1d4ed8;
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            border: 1px solid rgba(52, 81, 241, 0.12);
+        }
+
+        .badge.dst-on { background: rgba(248, 180, 0, 0.12); color: #92400e; border-color: rgba(248, 180, 0, 0.28); }
+        .badge.dst-off { background: rgba(34, 197, 94, 0.12); color: #166534; border-color: rgba(34, 197, 94, 0.28); }
+
+        .action-row {
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            color: var(--text-muted);
+            box-shadow: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+        }
+
+        .icon-btn:hover {
+            color: #0f172a;
+            border-color: rgba(15, 23, 42, 0.16);
+            background: rgba(15, 23, 42, 0.03);
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 720px) {
+            body { padding: 18px; }
+            .clock-container { flex-direction: column; }
+            .clock-card { width: 100%; min-width: auto; }
+            .top-bar { flex-direction: column; align-items: flex-start; }
+            .controls { width: 100%; justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page">
+        <div class="top-bar">
+            <div class="title-wrap">
+                <h1>Australian Time Dashboard</h1>
+                <div class="subtitle">Live local times across AUS</div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-swatch" style="background:#ff7043"></span> Adelaide
+                </div>
+                <div class="legend-item">
+                    <span class="legend-swatch" style="background:#3451f1"></span> Canberra
+                </div>
+                <div class="legend-item">
+                    <span class="legend-swatch" style="background:#22c55e"></span> Brisbane
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="toggle-format">Switch to 24h</button>
+            <button class="secondary" id="sync-now">Sync now</button>
+        </div>
+
+        <div class="clock-layout">
+            <div class="clock-container">
+                <div class="clock-card adelaide" data-city="adelaide">
+                    <div class="card-header">
+                        <div class="city-name">Adelaide</div>
+                        <div class="drag-handle">⋮⋮</div>
+                    </div>
+                    <div id="time-adelaide" class="time-display">--:--</div>
+                    <div class="divider"></div>
+                    <div id="date-adelaide" class="date-display">Loading...</div>
+                    <div id="code-adelaide" class="timezone-code">...</div>
+                    <div class="meta-row">
+                        <div id="offset-adelaide" class="badge">UTC ±--</div>
+                        <div id="dst-adelaide" class="badge dst-off">DST?</div>
+                    </div>
+                    <div class="action-row">
+                        <button class="icon-btn" data-copy="adelaide">📋 Copy time</button>
+                    </div>
+                </div>
+
+                <div class="clock-card canberra" data-city="canberra">
+                    <div class="card-header">
+                        <div class="city-name">Canberra</div>
+                        <div class="drag-handle">⋮⋮</div>
+                    </div>
+                    <div id="time-canberra" class="time-display">--:--</div>
+                    <div class="divider"></div>
+                    <div id="date-canberra" class="date-display">Loading...</div>
+                    <div id="code-canberra" class="timezone-code">...</div>
+                    <div class="meta-row">
+                        <div id="offset-canberra" class="badge">UTC ±--</div>
+                        <div id="dst-canberra" class="badge dst-off">DST?</div>
+                    </div>
+                    <div class="action-row">
+                        <button class="icon-btn" data-copy="canberra">📋 Copy time</button>
+                    </div>
+                </div>
+
+                <div class="clock-card brisbane" data-city="brisbane">
+                    <div class="card-header">
+                        <div class="city-name">Brisbane</div>
+                        <div class="drag-handle">⋮⋮</div>
+                    </div>
+                    <div id="time-brisbane" class="time-display">--:--</div>
+                    <div class="divider"></div>
+                    <div id="date-brisbane" class="date-display">Loading...</div>
+                    <div id="code-brisbane" class="timezone-code">...</div>
+                    <div class="meta-row">
+                        <div id="offset-brisbane" class="badge">UTC ±--</div>
+                        <div id="dst-brisbane" class="badge dst-off">DST?</div>
+                    </div>
+                    <div class="action-row">
+                        <button class="icon-btn" data-copy="brisbane">📋 Copy time</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cities = [
+            { id: 'adelaide', zone: 'Australia/Adelaide' },
+            { id: 'canberra', zone: 'Australia/Canberra' },
+            { id: 'brisbane', zone: 'Australia/Brisbane' }
+        ];
+
+        let useHour12 = true;
+
+        function getOffsetMinutes(date, timeZone) {
+            const dtf = new Intl.DateTimeFormat('en-US', {
+                timeZone,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hourCycle: 'h23'
+            });
+            const parts = dtf.formatToParts(date).reduce((acc, part) => {
+                acc[part.type] = part.value;
+                return acc;
+            }, {});
+            const asUTC = Date.UTC(
+                Number(parts.year),
+                Number(parts.month) - 1,
+                Number(parts.day),
+                Number(parts.hour),
+                Number(parts.minute),
+                Number(parts.second)
+            );
+            return (asUTC - date.getTime()) / 60000;
+        }
+
+        function formatOffsetLabel(minutes) {
+            const rounded = Math.round(minutes); // avoid showing decimal minute fractions
+            const sign = rounded >= 0 ? '+' : '-';
+            const abs = Math.abs(rounded);
+            const h = Math.floor(abs / 60).toString().padStart(2, '0');
+            const m = (abs % 60).toString().padStart(2, '0');
+            return `UTC ${sign}${h}:${m}`;
+        }
+
+        function isDstActive(zone, now) {
+            const year = now.getFullYear();
+            const jan = new Date(Date.UTC(year, 0, 1));
+            const jul = new Date(Date.UTC(year, 6, 1));
+            const offsetNow = getOffsetMinutes(now, zone);
+            const offsetJan = getOffsetMinutes(jan, zone);
+            const offsetJul = getOffsetMinutes(jul, zone);
+            const standardOffset = Math.min(offsetJan, offsetJul);
+            return offsetNow > standardOffset;
+        }
+
+        function updateClocks() {
+            const now = new Date();
+
+            cities.forEach(city => {
+                const timeString = now.toLocaleTimeString('en-AU', {
+                    timeZone: city.zone,
+                    hour12: useHour12,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const dateString = now.toLocaleDateString('en-AU', {
+                    timeZone: city.zone,
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short'
+                });
+
+                const optionsCode = { timeZone: city.zone, timeZoneName: 'short' };
+                const dateParts = new Intl.DateTimeFormat('en-AU', optionsCode).formatToParts(now);
+                const tzName = dateParts.find(part => part.type === 'timeZoneName').value;
+
+                const offsetMinutes = getOffsetMinutes(now, city.zone);
+                const dstActive = isDstActive(city.zone, now);
+
+                document.getElementById(`time-${city.id}`).textContent = timeString;
+                document.getElementById(`date-${city.id}`).textContent = dateString;
+                document.getElementById(`code-${city.id}`).textContent = tzName;
+
+                const offsetEl = document.getElementById(`offset-${city.id}`);
+                offsetEl.textContent = formatOffsetLabel(offsetMinutes);
+
+                const dstEl = document.getElementById(`dst-${city.id}`);
+                dstEl.textContent = dstActive ? 'DST Active' : 'DST Off';
+                dstEl.classList.toggle('dst-on', dstActive);
+                dstEl.classList.toggle('dst-off', !dstActive);
+            });
+        }
+
+        updateClocks();
+        const ticker = setInterval(updateClocks, 1000);
+
+        // Hour format toggle
+        document.getElementById('toggle-format').addEventListener('click', () => {
+            useHour12 = !useHour12;
+            document.getElementById('toggle-format').textContent = useHour12 ? 'Switch to 24h' : 'Switch to 12h';
+            updateClocks();
+        });
+
+        // Manual sync
+        document.getElementById('sync-now').addEventListener('click', () => updateClocks());
+
+        // Copy time buttons
+        document.querySelectorAll('[data-copy]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cityId = btn.getAttribute('data-copy');
+                const text = document.getElementById(`time-${cityId}`).textContent;
+                navigator.clipboard?.writeText(text);
+                btn.textContent = '✓ Copied';
+                setTimeout(() => { btn.textContent = '📋 Copy time'; }, 900);
+            });
+        });
+
+        // Enable drag-and-drop reordering of the clock cards
+        const container = document.querySelector('.clock-container');
+        const cards = Array.from(document.querySelectorAll('.clock-card'));
+        let draggingCard = null;
+
+        cards.forEach((card, index) => {
+            card.setAttribute('draggable', 'true');
+            card.style.animationDelay = `${index * 80}ms`;
+
+            card.addEventListener('dragstart', () => {
+                draggingCard = card;
+                card.classList.add('dragging');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                draggingCard = null;
+                document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+            });
+        });
+
+        container.addEventListener('dragover', event => {
+            event.preventDefault();
+            if (!draggingCard) return;
+
+            const targetCard = event.target.closest('.clock-card');
+            if (!targetCard || targetCard === draggingCard) return;
+
+            const rect = targetCard.getBoundingClientRect();
+            const dropAfter =
+                event.clientY > rect.top + rect.height / 2 ||
+                (Math.abs(event.clientY - (rect.top + rect.height / 2)) < rect.height * 0.35 &&
+                 event.clientX > rect.left + rect.width / 2);
+
+            document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+            targetCard.classList.add('drop-target');
+
+            if (dropAfter) {
+                targetCard.after(draggingCard);
+            } else {
+                targetCard.before(draggingCard);
+            }
+        });
+
+        container.addEventListener('drop', event => event.preventDefault());
+    </script>
+
+</body>
+</html>
